@@ -2,7 +2,7 @@
 # Only chain A is considered
 # An example of PDB 2xu9 (https://www.rcsb.org/structure/2XU9) is given
 
-# Required packages
+# Required packages in Python 3.xx
 # 1. BioPython
 # 2. NumPy
 
