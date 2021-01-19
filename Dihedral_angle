@@ -1,0 +1,99 @@
+# Calculate chi2 dihedral angle of histidine ligands in copper proteins. 
+# Only chain A is considered
+
+# Required packages
+# 1. BioPython
+# 2. NumPy
+
+from Bio.PDB import *
+import numpy as np
+pdb1 = PDBList()
+pdb1.retrieve_pdb_file('2xu9', pdir = 'full_path')
+
+parser = MMCIFParser()
+structure = parser.get_structure('2xu9', 'full_path/2xu9.cif')
+
+struc_dict = MMCIF2Dict.MMCIF2Dict('full_path/2xu9.cif')
+
+site_ID1 = struc_dict['_struct_site.id']
+site_detail = struc_dict['_struct_site.details'] 
+site_chain = struc_dict['_struct_site_gen.auth_asym_id']
+site_resnum = struc_dict['_struct_site_gen.auth_seq_id']
+site_resname = struc_dict['_struct_site_gen.label_comp_id']
+seq_id = struc_dict['_atom_site.label_seq_id']
+model = structure[0]
+chain_a = model['A']
+
+def unique(data):
+  return list(dict.fromkeys(data))
+  
+def calc_dihedral(u1, u2, u3, u4):
+    """ Calculate dihedral angle method. From bioPython.PDB
+    (adapted to np.array)
+    Calculate the dihedral angle between 4 vectors
+    representing 4 connected points. The angle is in
+    [-pi, pi].
+    """
+
+    a1 = u2 - u1
+    a2 = u3 - u2
+    a3 = u4 - u3
+
+    v1 = np.cross(a1, a2)
+    v1 = v1 / (v1 * v1).sum(-1)**0.5
+    v2 = np.cross(a2, a3)
+    v2 = v2 / (v2 * v2).sum(-1)**0.5
+    porm = np.sign((v1 * a3).sum(-1))
+    rad = np.arccos((v1*v2).sum(-1) / ((v1**2).sum(-1) * (v2**2).sum(-1))**0.5)
+    if not porm == 0:
+        rad = rad * porm
+
+    return rad
+
+list1 = []
+for a, b in zip(site_ID1, site_detail):
+    if 'CU' in b:
+        list1.append(a)
+
+#print(list1)
+
+b_res =[]
+for bind_id, chain, resnum, name, seq in zip(site_ID1, site_chain, site_resnum, site_resname, seq_id):
+    for bind_id in list1:
+        if name == "HIS":
+            b_res.append(resnum)
+            bind_res = unique(b_res)
+
+a = bind_res
+#print(a)
+#z = len(a)
+#print(z)
+
+res1 = []
+ca1 = []
+cb1 = []
+cg1 = []
+cd1 = []
+da = []
+for x in a:
+    res1.append(chain_a[int(x)]) 
+    res=(chain_a[int(x)])
+    ca = (res['CA'])
+    ca1.append(ca.coord)
+    cb = res['CB']
+    cb1.append(cb.coord)
+    cg = res['CG']
+    cg1.append(cg.coord)
+    cd = res['CD2']
+    cd1.append(cd.coord)
+    
+    alpha = calc_dihedral(ca.coord,cb.coord,cg.coord,cd.coord)
+    alpha_deg = alpha*180/np.pi
+    da.append(alpha_deg)
+    
+for lst in zip(res1, da):
+    print(lst)
+
+#print(distance)
+
+      
